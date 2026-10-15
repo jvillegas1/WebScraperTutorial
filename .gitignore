@@ -1,0 +1,42 @@
+# Entorno virtual y dependencias locales
+venv/
+Lib/
+.venv/
+env/
+Scripts/
+Include/
+pyvenv.cfg
+share/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Datos y logs del scraper (regenerables)
+scraper/data/*.db
+scraper/data/*.db-journal
+scraper/logs/
+*.log
+
+# Secretos
+.env
+.env.*
+*.pem
+credentials.json
+
+# IDE / Cursor
+.cursor/
+.idea/
+.vscode/
+*.swp
+
+# Playwright / OS
+playwright-report/
+test-results/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,40 @@
+# Web Scraper de Inmuebles - Variables de Entorno
+# Renombra este archivo a .env y configura tus valores
+
+# =============================================================================
+# MODO DEBUG
+# =============================================================================
+DEBUG=false
+
+# =============================================================================
+# CONFIGURACIÓN DE EMAIL (SMTP)
+# =============================================================================
+EMAIL_ENABLED=false
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu_email@gmail.com
+SMTP_PASSWORD=tu_contraseña_de_aplicacion
+FROM_EMAIL=tu_email@gmail.com
+TO_EMAILS=destinatario1@email.com,destinatario2@email.com
+
+# Para Gmail:
+# 1. Habilita la verificación en dos pasos
+# 2. Crea una "Contraseña de aplicación" en https://myaccount.google.com/apppasswords
+# 3. Usa esa contraseña en SMTP_PASSWORD
+
+# =============================================================================
+# CONFIGURACIÓN DE TELEGRAM
+# =============================================================================
+TELEGRAM_ENABLED=false
+TELEGRAM_BOT_TOKEN=tu_bot_token_de_botfather
+TELEGRAM_CHAT_IDS=chat_id_1,chat_id_2
+
+# Para crear un bot de Telegram:
+# 1. Habla con @BotFather en Telegram
+# 2. Envía /newbot y sigue las instrucciones
+# 3. Copia el token que te da
+# 4. Para obtener tu chat_id, envía un mensaje a tu bot y visita:
+#    https://api.telegram.org/bot<TU_TOKEN>/getUpdates
+
+
+
