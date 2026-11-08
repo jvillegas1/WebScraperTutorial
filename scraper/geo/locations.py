@@ -7,7 +7,12 @@ Argentina: 24 jurisdicciones (23 provincias + CABA), barrios de CABA y partidos 
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+import re
+import unicodedata
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..parsers.property_parser import Property
 
 
 def _slug(text: str) -> str:
@@ -23,6 +28,15 @@ def _slug(text: str) -> str:
         .replace("(", "")
         .replace(")", "")
     )
+
+
+def barrio_slug(name: str) -> str:
+    """Slug URL para barrios/partidos (MercadoLibre, Zonaprop, Argenprop)."""
+    return _slug(name)
+
+
+# Portales con listados por barrio en CABA (ML, Zonaprop, Argenprop)
+CABA_BARRIO_PORTALS = ("mercadolibre", "zonaprop", "argenprop")
 
 
 def _ve_estado(name: str, ml_slug: Optional[str] = None) -> dict:
@@ -134,33 +148,40 @@ ARGENTINA_PROVINCIAS: List[dict] = [
 ]
 
 
-CABA_BARRIOS: List[dict] = [
-    {
-        "id": f"ar_caba_{_slug(b)}",
+_CABA_BARRIO_NAMES = [
+    "Agronomía", "Almagro", "Balvanera", "Barracas", "Belgrano", "Boedo",
+    "Caballito", "Chacarita", "Colegiales", "Constitución", "Flores",
+    "Floresta", "La Boca", "La Paternal", "Liniers", "Mataderos",
+    "Montserrat", "Núñez", "Palermo", "Parque Chacabuco", "Parque Patricios",
+    "Puerto Madero", "Recoleta", "Retiro", "Saavedra", "San Cristóbal",
+    "San Nicolás", "San Telmo", "Villa Crespo", "Villa Devoto", "Villa Lugano",
+    "Villa Luro", "Villa Ortúzar", "Villa Pueyrredón", "Villa Urquiza",
+    "Villa del Parque",
+]
+
+
+def _caba_barrio_location(barrio: str) -> dict:
+    s = _slug(barrio)
+    return {
+        "id": f"ar_caba_{s}",
         "region": "argentina",
         "tipo": "barrio",
         "estado_provincia": "Ciudad Autónoma de Buenos Aires",
         "localidad": "CABA",
-        "sub_localidad": b,
+        "sub_localidad": barrio,
         "parent_division": "Ciudad Autónoma de Buenos Aires",
+        "zonaprop_path": f"inmuebles-venta-capital-federal-{s}.html",
         "slug": {
-            "mercadolibre": f"capital-federal/{_slug(b)}",
-            "zonaprop": f"capital-federal-{_slug(b)}",
-            "argenprop": f"capital-federal/{_slug(b)}",
-            "properati": f"capital-federal-{_slug(b)}",
-            "default": f"capital-federal-{_slug(b)}",
+            "mercadolibre": f"capital-federal/{s}",
+            "zonaprop": f"capital-federal-{s}",
+            "argenprop": f"capital-federal/{s}",
+            "properati": f"capital-federal-{s}",
+            "default": f"capital-federal-{s}",
         },
     }
-    for b in [
-        "Agronomía", "Almagro", "Balvanera", "Barracas", "Belgrano", "Boedo",
-        "Caballito", "Chacarita", "Colegiales", "Constitución", "Flores",
-        "Floresta", "La Boca", "La Paternal", "Liniers", "Mataderos",
-        "Montserrat", "Núñez", "Palermo", "Parque Patricios", "Puerto Madero",
-        "Recoleta", "Retiro", "Saavedra", "San Cristóbal", "San Nicolás",
-        "San Telmo", "Villa Crespo", "Villa Devoto", "Villa Lugano", "Villa Luro",
-        "Villa Ortúzar", "Villa Pueyrredón", "Villa Urquiza", "Villa del Parque",
-    ]
-]
+
+
+CABA_BARRIOS: List[dict] = [_caba_barrio_location(b) for b in _CABA_BARRIO_NAMES]
 
 
 GBA_PARTIDOS: List[dict] = [
@@ -252,3 +273,72 @@ def location_label(loc: dict) -> str:
     if loc.get("sub_localidad"):
         parts.append(loc["sub_localidad"])
     return ", ".join(p for p in parts if p)
+
+
+CABA_BARRIO_NAMES: List[str] = sorted(
+    {loc["sub_localidad"] for loc in CABA_BARRIOS},
+    key=len,
+    reverse=True,
+)
+
+
+def _normalize_match_text(text: str) -> str:
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFD", text.lower())
+    stripped = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+    return re.sub(r"\s+", " ", stripped).strip()
+
+
+def infer_caba_barrio(
+    ubicacion: str, titulo: str = "", *, assume_caba: bool = False
+) -> str:
+    """
+    Detecta el barrio de CABA a partir del texto de ubicación/título del listado.
+    """
+    combined = _normalize_match_text(f"{ubicacion} {titulo}")
+    if not combined and not assume_caba:
+        return ""
+    caba_hint = assume_caba or (
+        "capital federal" in combined
+        or "caba" in combined.split()
+        or "ciudad autonoma de buenos aires" in combined
+    )
+    if not caba_hint:
+        return ""
+    for name in CABA_BARRIO_NAMES:
+        token = _normalize_match_text(name)
+        if re.search(rf"\b{re.escape(token)}\b", combined):
+            return name
+    return ""
+
+
+def enrich_property_locality(prop: "Property") -> "Property":
+    """Completa sub_localidad en CABA cuando el scraper solo trae Capital Federal."""
+    if getattr(prop, "region", "") != "argentina":
+        return prop
+    if (prop.sub_localidad or "").strip():
+        return prop
+
+    text_l = _normalize_match_text(f"{prop.ubicacion or ''} {prop.titulo or ''}")
+    is_caba = (
+        prop.estado_provincia == "Ciudad Autónoma de Buenos Aires"
+        or (prop.localidad or "").upper() == "CABA"
+        or "capital federal" in text_l
+        or "ciudad autonoma de buenos aires" in text_l
+    )
+    if not is_caba:
+        return prop
+
+    barrio = infer_caba_barrio(
+        prop.ubicacion or "", prop.titulo or "", assume_caba=is_caba
+    )
+    if not barrio:
+        return prop
+
+    prop.sub_localidad = barrio
+    if not prop.estado_provincia:
+        prop.estado_provincia = "Ciudad Autónoma de Buenos Aires"
+    if not prop.localidad:
+        prop.localidad = "CABA"
+    return prop

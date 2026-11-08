@@ -49,7 +49,8 @@ def _paginate(url: str, page: int, portal: str) -> str:
 
 def _build_venezuela_url(portal: str, base_url: str, op: str, slug: str, page: int) -> str:
     if portal == "mercadolibre":
-        url = f"{base_url}/inmuebles/{op}/{slug}/" if slug else f"{base_url}/inmuebles/{op}/"
+        # inmuebles.mercadolibre.com.ve/{op}/{estado}/ — evita listado.* (negative_traffic)
+        url = f"{base_url}/{op}/{slug}/" if slug else f"{base_url}/{op}/"
     elif portal == "corotos":
         url = f"{base_url}/inmuebles/{op}/{slug}" if slug else f"{base_url}/inmuebles/{op}/"
     elif portal == "infocasas":
@@ -72,7 +73,8 @@ def _build_argentina_url(
     portal: str, base_url: str, op: str, slug: str, page: int, location: dict
 ) -> str:
     if portal == "mercadolibre":
-        url = f"{base_url}/inmuebles/{op}/{slug}/" if slug else f"{base_url}/inmuebles/{op}/"
+        # inmuebles.mercadolibre.com.ar/{op}/{slug}/ — funciona con requests (sin listado.*)
+        url = f"{base_url}/{op}/{slug}/" if slug else f"{base_url}/{op}/"
     elif portal == "zonaprop":
         if location.get("zonaprop_path"):
             path = location["zonaprop_path"]
@@ -118,6 +120,8 @@ def _build_argentina_url(
 
 def apply_location_to_property(prop, location: dict):
     """Enriquece una Property con datos geográficos del target de scraping."""
+    from .locations import enrich_property_locality
+
     prop.estado_provincia = location.get("estado_provincia", "")
     prop.localidad = location.get("localidad", "") or location.get("estado_provincia", "")
     prop.sub_localidad = location.get("sub_localidad", "")
@@ -127,3 +131,4 @@ def apply_location_to_property(prop, location: dict):
         label = location_label(location)
         if label.lower() not in (prop.ubicacion or "").lower():
             prop.ubicacion = f"{prop.ubicacion}, {label}" if prop.ubicacion else label
+    enrich_property_locality(prop)

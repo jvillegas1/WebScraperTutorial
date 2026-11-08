@@ -234,6 +234,8 @@ python scraper/main.py run --region argentina --source mercadolibre
 
 Fuentes disponibles: `mercadolibre`, `zonaprop`, `argenprop`, `properati`, `toctoc`, `buscainmueble`, `lamudi`, `clarin`, `remax`, `century21`.
 
+**CABA (Ciudad de Buenos Aires):** 36 barrios con URLs en **MercadoLibre**, **Argenprop** (scraping geográfico nacional) y **Zonaprop** (3 listados por barrio: casas, departamentos y PH). El campo `sub_localidad` se completa al scrapear por barrio o por inferencia desde la ubicación del aviso.
+
 ### Scrapear ambas regiones
 
 ```bash
@@ -500,6 +502,7 @@ Recarga el dashboard o usa **Refrescar** en la pestaña Sistema.
 - Algunos portales bloquean IPs; espera unos minutos
 - Aumenta los delays en `scraper/regions.py`
 - Prueba un solo portal en debug: `python scraper/main.py --debug run --region argentina --source mercadolibre`
+- **MercadoLibre** usa `inmuebles.mercadolibre.com.{ar|ve}` con el scraper HTTP (`requests`), no `listado.*` (suele mostrar pantalla de login / `negative_traffic`). Si en Venezuela ves `mercadolibre_blocked` en los logs, ejecuta el scraper desde una red venezolana o con sesión de navegador válida.
 
 ### Alertas no llegan
 
