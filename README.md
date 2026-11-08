@@ -234,6 +234,8 @@ python scraper/main.py run --region argentina --source mercadolibre
 
 Fuentes disponibles: `mercadolibre`, `zonaprop`, `argenprop`, `properati`, `toctoc`, `buscainmueble`, `lamudi`, `clarin`, `remax`, `century21`.
 
+**CABA (Ciudad de Buenos Aires):** 36 barrios con URLs en **MercadoLibre**, **Argenprop** (scraping geográfico nacional) y **Zonaprop** (3 listados por barrio: casas, departamentos y PH). El campo `sub_localidad` se completa al scrapear por barrio o por inferencia desde la ubicación del aviso.
+
 ### Scrapear ambas regiones
 
 ```bash

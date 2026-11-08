@@ -120,6 +120,8 @@ def _build_argentina_url(
 
 def apply_location_to_property(prop, location: dict):
     """Enriquece una Property con datos geográficos del target de scraping."""
+    from .locations import enrich_property_locality
+
     prop.estado_provincia = location.get("estado_provincia", "")
     prop.localidad = location.get("localidad", "") or location.get("estado_provincia", "")
     prop.sub_localidad = location.get("sub_localidad", "")
@@ -129,3 +131,4 @@ def apply_location_to_property(prop, location: dict):
         label = location_label(location)
         if label.lower() not in (prop.ubicacion or "").lower():
             prop.ubicacion = f"{prop.ubicacion}, {label}" if prop.ubicacion else label
+    enrich_property_locality(prop)

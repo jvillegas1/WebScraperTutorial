@@ -3,6 +3,7 @@ Dashboard de Inmuebles - Venezuela y Argentina
 Interfaz con dos tiers independientes por país.
 """
 
+import hashlib
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -458,10 +459,11 @@ def apply_filters(df, filters):
 
     if filters.get('sub_locality') and filters['sub_locality'] != 'Todos':
         if 'sub_localidad' in filtered.columns:
-            mask = filtered['sub_localidad'] == filters['sub_locality']
+            target = filters['sub_locality'].strip()
+            mask = filtered['sub_localidad'].fillna('').str.strip() == target
             if not mask.any() and 'ubicacion' in filtered.columns:
                 mask = filtered['ubicacion'].str.contains(
-                    filters['sub_locality'], case=False, na=False
+                    target, case=False, na=False
                 )
             filtered = filtered[mask]
     
@@ -660,6 +662,18 @@ def render_charts(df):
         st.plotly_chart(fig_portal, use_container_width=True)
 
 
+PROPERTIES_PAGE_SIZE = 25
+
+
+def _filters_signature(filters: dict) -> str:
+    if not filters:
+        return ""
+    parts = []
+    for key in sorted(filters.keys()):
+        parts.append(f"{key}={filters[key]!r}")
+    return "|".join(parts)
+
+
 # =============================================================================
 # TABLA DE PROPIEDADES
 # =============================================================================
@@ -712,10 +726,54 @@ def render_properties_table(df, filters, region: str = "venezuela"):
     )
     sort_col, ascending = sort_options[sort_by]
     
-    df_sorted = df.sort_values(by=sort_col, ascending=ascending)
-    
-    # Mostrar propiedades
-    for idx, row in df_sorted.head(50).iterrows():
+    df_sorted = df.sort_values(by=sort_col, ascending=ascending).reset_index(drop=True)
+    total = len(df_sorted)
+    total_pages = max(1, (total + PROPERTIES_PAGE_SIZE - 1) // PROPERTIES_PAGE_SIZE)
+
+    page_key = f"properties_page_{region}"
+    sig_key = f"properties_filter_sig_{region}"
+    current_sig = _filters_signature(filters)
+    if st.session_state.get(sig_key) != current_sig:
+        st.session_state[sig_key] = current_sig
+        st.session_state[page_key] = 1
+
+    if page_key not in st.session_state:
+        st.session_state[page_key] = 1
+    page = max(1, min(int(st.session_state[page_key]), total_pages))
+    st.session_state[page_key] = page
+
+    nav1, nav2, nav3 = st.columns([1, 2, 1])
+    with nav1:
+        if st.button("← Anterior", disabled=page <= 1, key=f"props_prev_{region}"):
+            st.session_state[page_key] = page - 1
+            st.rerun()
+    with nav2:
+        sig_hash = hashlib.md5(current_sig.encode("utf-8")).hexdigest()[:10]
+        jumped = st.number_input(
+            "Página",
+            min_value=1,
+            max_value=total_pages,
+            value=page,
+            step=1,
+            key=f"props_page_input_{region}_{sig_hash}",
+        )
+        if int(jumped) != page:
+            st.session_state[page_key] = int(jumped)
+            st.rerun()
+        st.caption(
+            f"Mostrando {(page - 1) * PROPERTIES_PAGE_SIZE + 1:,}"
+            f"–{min(page * PROPERTIES_PAGE_SIZE, total):,} de {total:,}"
+            f" · {PROPERTIES_PAGE_SIZE} por página · {total_pages} página(s)"
+        )
+    with nav3:
+        if st.button("Siguiente →", disabled=page >= total_pages, key=f"props_next_{region}"):
+            st.session_state[page_key] = page + 1
+            st.rerun()
+
+    start = (page - 1) * PROPERTIES_PAGE_SIZE
+    page_df = df_sorted.iloc[start : start + PROPERTIES_PAGE_SIZE]
+
+    for _, row in page_df.iterrows():
         with st.container():
             col1, col2, col3 = st.columns([3, 1, 1])
             

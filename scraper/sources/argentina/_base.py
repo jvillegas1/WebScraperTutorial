@@ -63,7 +63,7 @@ class ArgentinaPortalScraper(BaseScraper):
                 self.config.get('location_label', 'Argentina'),
             )
 
-            return Property(
+            prop = Property(
                 id_externo=raw_data['id_externo'],
                 source=self.name,
                 region=self.region,
@@ -80,6 +80,8 @@ class ArgentinaPortalScraper(BaseScraper):
                     if re.search(r'(\d+)\s*(?:amb|dorm|hab)', titulo, re.I) else ''
                 ),
             )
+            from ...geo.locations import enrich_property_locality
+            return enrich_property_locality(prop)
         except Exception as e:
             logger.error("property_normalization_error", scraper=self.name, error=str(e))
             return None

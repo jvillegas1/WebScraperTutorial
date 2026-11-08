@@ -2,6 +2,10 @@
 
 from typing import List
 
+from ...geo.locations import CABA_BARRIOS, barrio_slug
+
+ZONAPROP_CABA_LISTING_TYPES = ("casas", "departamentos", "ph")
+
 
 def _target(
     path: str,
@@ -29,45 +33,17 @@ CABA = "Ciudad Autónoma de Buenos Aires"
 GBA = "Gran Buenos Aires"
 BA = "Buenos Aires"
 
-# Rutas solicitadas (sin duplicados)
-ZONAPROP_EXTRA_PATHS: List[str] = [
+# GBA y listados puntuales fuera del catálogo CABA×3
+ZONAPROP_GBA_PATHS: List[str] = [
     "departamentos-venta-caseros-tres-de-febrero.html",
     "casas-venta-ciudad-jardin-lomas-del-palomar.html",
     "ph-venta-caseros-tres-de-febrero.html",
     "casas-venta-caseros-tres-de-febrero.html",
-    "casas-venta-flores.html",
-    "departamentos-venta-flores.html",
-    "ph-venta-flores.html",
-    "casas-venta-almagro.html",
-    "departamentos-venta-almagro.html",
-    "ph-venta-almagro.html",
-    "casas-venta-parque-chacabuco.html",
-    "departamentos-venta-parque-chacabuco.html",
-    "ph-venta-parque-chacabuco.html",
-    "casas-venta-la-paternal.html",
-    "departamentos-venta-la-paternal.html",
-    "ph-venta-la-paternal.html",
-    "casas-venta-agronomia.html",
-    "departamentos-venta-agronomia.html",
-    "ph-venta-agronomia.html",
-    "casas-venta-boedo.html",
-    "departamentos-venta-boedo.html",
-    "ph-venta-boedo.html",
-    "casas-venta-san-cristobal.html",
-    "departamentos-venta-san-cristobal.html",
-    "ph-venta-san-cristobal.html",
 ]
 
 _PATH_LOCALITY = {
     "caseros-tres-de-febrero": (BA, GBA, "Caseros"),
     "ciudad-jardin-lomas-del-palomar": (BA, GBA, "Ciudad Jardín Lomas del Palomar"),
-    "flores": (CABA, "CABA", "Flores"),
-    "almagro": (CABA, "CABA", "Almagro"),
-    "parque-chacabuco": (CABA, "CABA", "Parque Chacabuco"),
-    "la-paternal": (CABA, "CABA", "La Paternal"),
-    "agronomia": (CABA, "CABA", "Agronomía"),
-    "boedo": (CABA, "CABA", "Boedo"),
-    "san-cristobal": (CABA, "CABA", "San Cristóbal"),
 }
 
 
@@ -79,11 +55,43 @@ def _locality_for_path(path: str) -> tuple:
     return ("Argentina", "Argentina", "")
 
 
+def get_caba_zonaprop_targets(operacion: str = "venta") -> List[dict]:
+    """
+    Un objetivo por barrio y tipo de publicación (casas / departamentos / ph).
+    Coincide con los 3 formatos de URL que usa Zonaprop en CABA.
+    """
+    targets: List[dict] = []
+    seen_ids: set[str] = set()
+    for loc in CABA_BARRIOS:
+        barrio = loc["sub_localidad"]
+        slug = barrio_slug(barrio)
+        for tipo in ZONAPROP_CABA_LISTING_TYPES:
+            path = f"{tipo}-{operacion}-{slug}.html"
+            target = _target(
+                path,
+                estado_provincia=CABA,
+                localidad="CABA",
+                sub_localidad=barrio,
+                operacion=operacion,
+            )
+            if target["id"] in seen_ids:
+                continue
+            seen_ids.add(target["id"])
+            targets.append(target)
+    return targets
+
+
 def get_zonaprop_extra_targets() -> List[dict]:
-    """Convierte rutas Zonaprop en objetivos de scraping geográficos."""
-    targets = []
-    seen = set()
-    for path in ZONAPROP_EXTRA_PATHS:
+    """CABA: todos los barrios × 3 sitios Zonaprop + rutas GBA manuales."""
+    targets: List[dict] = []
+    seen: set[str] = set()
+
+    for target in get_caba_zonaprop_targets():
+        if target["id"] not in seen:
+            targets.append(target)
+            seen.add(target["id"])
+
+    for path in ZONAPROP_GBA_PATHS:
         if path in seen:
             continue
         seen.add(path)
@@ -92,3 +100,13 @@ def get_zonaprop_extra_targets() -> List[dict]:
             _target(path, estado_provincia=estado, localidad=loc, sub_localidad=sub)
         )
     return targets
+
+
+def get_caba_barrio_portal_slugs(barrio: str) -> dict:
+    """Slugs por portal (ML / Zonaprop / Argenprop) para un barrio de CABA."""
+    s = barrio_slug(barrio)
+    return {
+        "mercadolibre": f"capital-federal/{s}",
+        "zonaprop": f"capital-federal-{s}",
+        "argenprop": f"capital-federal/{s}",
+    }
