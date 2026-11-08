@@ -49,7 +49,8 @@ def _paginate(url: str, page: int, portal: str) -> str:
 
 def _build_venezuela_url(portal: str, base_url: str, op: str, slug: str, page: int) -> str:
     if portal == "mercadolibre":
-        url = f"{base_url}/inmuebles/{op}/{slug}/" if slug else f"{base_url}/inmuebles/{op}/"
+        # inmuebles.mercadolibre.com.ve/{op}/{estado}/ — evita listado.* (negative_traffic)
+        url = f"{base_url}/{op}/{slug}/" if slug else f"{base_url}/{op}/"
     elif portal == "corotos":
         url = f"{base_url}/inmuebles/{op}/{slug}" if slug else f"{base_url}/inmuebles/{op}/"
     elif portal == "infocasas":
@@ -72,7 +73,8 @@ def _build_argentina_url(
     portal: str, base_url: str, op: str, slug: str, page: int, location: dict
 ) -> str:
     if portal == "mercadolibre":
-        url = f"{base_url}/inmuebles/{op}/{slug}/" if slug else f"{base_url}/inmuebles/{op}/"
+        # inmuebles.mercadolibre.com.ar/{op}/{slug}/ — funciona con requests (sin listado.*)
+        url = f"{base_url}/{op}/{slug}/" if slug else f"{base_url}/{op}/"
     elif portal == "zonaprop":
         if location.get("zonaprop_path"):
             path = location["zonaprop_path"]

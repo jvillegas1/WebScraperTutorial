@@ -51,7 +51,7 @@ REGIONS = {
             },
         },
         "portal_urls": {
-            "mercadolibre": "https://listado.mercadolibre.com.ve",
+            "mercadolibre": "https://inmuebles.mercadolibre.com.ve",
             "tuinmueble": "https://www.tuinmueble.com",
             "infocasas": "https://www.infocasas.com.ve",
             "olx": "https://www.olx.com.ve",
@@ -116,7 +116,7 @@ REGIONS = {
             },
         },
         "portal_urls": {
-            "mercadolibre": "https://listado.mercadolibre.com.ar",
+            "mercadolibre": "https://inmuebles.mercadolibre.com.ar",
             "zonaprop": "https://www.zonaprop.com.ar",
             "argenprop": "https://www.argenprop.com",
             "properati": "https://www.properati.com.ar",

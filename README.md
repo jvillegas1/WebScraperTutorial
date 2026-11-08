@@ -500,6 +500,7 @@ Recarga el dashboard o usa **Refrescar** en la pestaña Sistema.
 - Algunos portales bloquean IPs; espera unos minutos
 - Aumenta los delays en `scraper/regions.py`
 - Prueba un solo portal en debug: `python scraper/main.py --debug run --region argentina --source mercadolibre`
+- **MercadoLibre** usa `inmuebles.mercadolibre.com.{ar|ve}` con el scraper HTTP (`requests`), no `listado.*` (suele mostrar pantalla de login / `negative_traffic`). Si en Venezuela ves `mercadolibre_blocked` en los logs, ejecuta el scraper desde una red venezolana o con sesión de navegador válida.
 
 ### Alertas no llegan
 
